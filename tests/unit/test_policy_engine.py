@@ -195,6 +195,25 @@ class TestEscalationSignals:
         )
         assert result.legal_keywords_found == []
 
+    @pytest.mark.parametrize("inflected", ["prawnika", "sądu", "sądem", "prawnikiem"])
+    def test_inflected_forms_are_missed(self, engine, order_factory, inflected):
+        """Documents a known limitation rather than pretending it does not exist.
+
+        Whole-word matching cannot see Polish declension: the keyword "prawnik" does
+        not match "prawnika". Widening to stems would fire on "sądzę" and escalate
+        almost everything, so the tradeoff is deliberate. The real fix is
+        lemmatisation (spaCy / Morfeusz); until then a shop adds the inflected forms
+        to escalation.keywords. Pinned by a test so it stays a decision, not a bug
+        someone discovers in production.
+        """
+        result = engine.evaluate(
+            intent=Intent.RETURN_NO_REASON,
+            order=order_factory(),
+            ticket_text=f"Sprawę prowadzi {inflected}.",
+            today=TODAY,
+        )
+        assert result.legal_keywords_found == []
+
     def test_high_value_order_is_flagged(self, engine, order_factory):
         result = engine.evaluate(
             intent=Intent.RETURN_NO_REASON,
