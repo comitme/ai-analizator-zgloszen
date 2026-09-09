@@ -65,3 +65,25 @@ def _extract_order_ref(text: str) -> str | None:
     """Pull the first 4+ digit run out of the text."""
     match = re.search(r"\b(\d{4,})\b", text)
     return match.group(1) if match else None
+
+
+class FakeResponder:
+    """Offline stand-in for the reply generator.
+
+    Templated, not written - it exists so the operator queue in Streamlit has
+    something to render without an API key. The template deliberately reads as a
+    template so nobody mistakes offline output for a real draft.
+    """
+
+    def __init__(self, *, model: str = "fake") -> None:
+        self._model = model
+
+    def generate(self, *, ticket_text, classification, order, policy):  # noqa: ANN001, ANN201
+        ref = f" (zamówienie {order.order_ref})" if order else ""
+        body = (
+            f"Dzień dobry,\n\n"
+            f"dziękujemy za wiadomość{ref}. {policy.reason_pl}\n\n"
+            f"[ODPOWIEDŹ ZASTĘPCZA - tryb offline, model nie został wywołany]\n\n"
+            f"Pozdrawiamy,\nObsługa Klienta"
+        )
+        return body, UsageRecord(model=self._model)
