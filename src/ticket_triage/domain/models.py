@@ -7,7 +7,7 @@ of the prompt contract - the model reads them. Keep them precise.
 Everything else is plain transport between pipeline stages.
 """
 
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
@@ -92,15 +92,43 @@ class UsageRecord(BaseModel):
         )
 
 
-class TriageResult(BaseModel):
-    """Everything the pipeline produced for one ticket."""
+class DecisionResult(BaseModel):
+    """Auto-reply or hand to a human, and why."""
 
-    ticket_id: int
-    classification: Classification
-    order: Order | None = None
-    policy: PolicyResult
     decision: Decision
-    escalation_reasons: list[EscalationReason] = Field(default_factory=list)
-    draft_reply_pl: str | None = None
-    usage: UsageRecord
-    created_at: datetime
+    reasons: list[EscalationReason] = Field(
+        default_factory=list,
+        description="Empty exactly when the decision is AUTO_REPLY. Order matches the checks.",
+    )
+    threshold_used: float = Field(
+        ge=0.0,
+        le=1.0,
+        description=(
+            "The confidence threshold in force for this ticket. Recorded so a verdict "
+            "can be re-read later against the setting that produced it - the threshold "
+            "is tuned over time and old rows must stay interpretable."
+        ),
+    )
+
+    @property
+    def escalated(self) -> bool:
+        return self.decision is Decision.ESCALATE
+
+
+class TriageOutcome(BaseModel):
+    """What the pure pipeline produced: verdict, decision and (maybe) a draft reply.
+
+    No ``ticket_id`` and no timestamps - this object is the result of reasoning, not
+    of storage. The router attaches it to a row.
+    """
+
+    policy: PolicyResult
+    decision: DecisionResult
+    draft_reply_pl: str | None = Field(
+        default=None,
+        description="None whenever the ticket escalated - we do not draft what nobody sends.",
+    )
+    generation_usage: UsageRecord | None = Field(
+        default=None,
+        description="None when the generation call was skipped or failed.",
+    )

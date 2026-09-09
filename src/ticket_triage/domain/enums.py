@@ -71,6 +71,14 @@ class EscalationReason(StrEnum):
     LEGAL_KEYWORD = "legal_keyword"
     """Ticket mentions a legal-dispute signal (UOKiK, sąd, prawnik, ...)."""
 
+    GENERATION_FAILED = "generation_failed"
+    """Operational, not a business rule: the reply could not be drafted.
+
+    The classification and policy verdict are still valid and worth keeping, so the
+    ticket degrades to a human instead of failing the whole request and paying for
+    classification twice on retry.
+    """
+
 
 class TicketStatus(StrEnum):
     """Lifecycle of a ticket in the operator queue."""
@@ -106,4 +114,5 @@ ESCALATION_LABELS_PL: dict[EscalationReason, str] = {
     EscalationReason.AMBIGUOUS_POLICY: "Niejednoznaczna ocena polityki",
     EscalationReason.HIGH_VALUE_ORDER: "Zamówienie o wysokiej wartości",
     EscalationReason.LEGAL_KEYWORD: "Sygnał sporu prawnego",
+    EscalationReason.GENERATION_FAILED: "Nie udało się wygenerować odpowiedzi",
 }
