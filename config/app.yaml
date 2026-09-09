@@ -1,0 +1,23 @@
+# Konfiguracja aplikacji (techniczna). Reguły biznesowe -> return_policy.yaml.
+
+models:
+  # Model per zadanie — pozwala zejść na tańszy tam, gdzie jakość na tym nie traci.
+  # eval/run_eval.py porównuje accuracy i koszt między modelami.
+  classification: claude-sonnet-5
+  generation: claude-sonnet-5
+
+  # Limity tokenów wyjścia. Klasyfikacja zwraca mały JSON — nie potrzebuje więcej.
+  classification_max_tokens: 1024
+  generation_max_tokens: 2048
+
+triage:
+  # Poniżej tego progu zgłoszenie idzie do człowieka.
+  # Wartość WSTĘPNA — właściwą wyznaczy eval/threshold_sweep.py na zbiorze ewaluacyjnym.
+  # Confidence jest samoraportowane przez model i bywa źle skalibrowane,
+  # dlatego to tylko jeden z pięciu warunków eskalacji (patrz triage/decision.py).
+  confidence_threshold: 0.75
+
+cost:
+  # Kurs do przeliczania kosztu API na PLN w panelu metryk.
+  # Statyczny celowo — koszt ma być powtarzalny między uruchomieniami raportu.
+  usd_to_pln: 4.05

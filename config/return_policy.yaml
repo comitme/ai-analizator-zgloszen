@@ -1,0 +1,52 @@
+# Polityka zwrotów i reklamacji sklepu.
+#
+# Ten plik jest JEDYNYM źródłem prawdy o regułach biznesowych.
+# Reguły NIE są zaszyte w promptach do modelu — ocenia je deterministyczny
+# PolicyEngine (src/ticket_triage/policy/engine.py), co daje:
+#   - powtarzalność (ta sama data -> ta sama decyzja),
+#   - testowalność bez wywołań API,
+#   - odporność na prompt injection w treści maila od klienta,
+#   - łatwe dostosowanie pod konkretny sklep (edycja YAML, nie kodu).
+#
+# Klucze po angielsku (spójnie z kodem), opisy po polsku.
+
+shop_name: "Sklep Demo"
+
+# Ustawowe odstąpienie od umowy na odległość (14 dni).
+# Sklep może dać więcej, nigdy mniej.
+return_window_days: 14
+
+# Kategorie wyłączone z prawa do zwrotu bez podania przyczyny
+# (art. 38 ustawy o prawach konsumenta — towary zapieczętowane, spersonalizowane itd.).
+# UWAGA: wyłączenie dotyczy TYLKO zwrotu bez przyczyny.
+# Reklamacja z tytułu rękojmi przysługuje zawsze, niezależnie od kategorii.
+excluded_categories:
+  - bielizna
+  - kosmetyki
+  - karty-podarunkowe
+  - produkty-spersonalizowane
+
+# Rękojmia za wady fizyczne — 2 lata od wydania rzeczy.
+warranty_months: 24
+
+# --- Reguły twardej eskalacji do człowieka ---
+# Wykrywane przez PolicyEngine, egzekwowane przez DecisionEngine.
+# Nawet przy wysokiej pewności modelu takie zgłoszenie nie idzie automatycznie.
+
+escalation:
+  # Zgłoszenia dotyczące zamówień powyżej tej kwoty zawsze idą do człowieka.
+  amount_above_pln: 2000
+
+  # Sygnały sporu prawnego — automatyczna odpowiedź byłaby ryzykowna.
+  # Dopasowanie bez uwzględniania wielkości liter, na całych słowach.
+  keywords:
+    - UOKiK
+    - sąd
+    - pozew
+    - prawnik
+    - adwokat
+    - radca prawny
+    - rzecznik konsumentów
+    - rzecznik praw konsumenta
+    - odszkodowanie
+    - nakaz zapłaty

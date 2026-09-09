@@ -1,0 +1,10 @@
+# Normalise line endings: LF in the repository, native in the working tree.
+# Without this, a repo authored on Windows shows up as a whole-file diff on Linux/CI.
+* text=auto eol=lf
+
+# Makefile requires tabs and LF - never let autocrlf touch it.
+Makefile text eol=lf
+
+*.png binary
+*.jpg binary
+*.db binary
