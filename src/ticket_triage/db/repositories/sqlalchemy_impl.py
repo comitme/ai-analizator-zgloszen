@@ -2,7 +2,13 @@
 
 from sqlalchemy.orm import Session
 
-from ...domain.models import Classification, Order, PolicyResult, UsageRecord
+from ...domain.models import (
+    Classification,
+    DecisionResult,
+    Order,
+    PolicyResult,
+    UsageRecord,
+)
 from ..schema import LlmCallRow, OrderRow, TicketRow
 
 
@@ -60,6 +66,18 @@ class SqlAlchemyTicketRepository:
         row.policy_outcome = policy.outcome.value
         row.policy_rule_id = policy.rule_id
         row.policy_reason = policy.reason_pl
+
+    def save_decision(self, ticket_id: int, decision: DecisionResult) -> None:
+        row = self._require(ticket_id)
+        row.decision = decision.decision.value
+        # Comma-joined rather than a child table: the list is short, bounded by the
+        # enum, and only ever read back whole for one ticket. A join table would buy
+        # nothing here. If reasons ever need aggregating across tickets, this is the
+        # column to normalise.
+        row.escalation_reasons = ",".join(r.value for r in decision.reasons) or None
+
+    def save_draft_reply(self, ticket_id: int, reply: str) -> None:
+        self._require(ticket_id).draft_reply = reply
 
     def record_usage(self, ticket_id: int, stage: str, usage: UsageRecord) -> None:
         self._session.add(

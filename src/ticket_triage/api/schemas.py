@@ -9,8 +9,20 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from ..domain.enums import Intent, PolicyOutcome
-from ..domain.models import Classification, Order, PolicyResult, UsageRecord
+from ..domain.enums import (
+    ESCALATION_LABELS_PL,
+    Decision,
+    EscalationReason,
+    Intent,
+    PolicyOutcome,
+)
+from ..domain.models import (
+    Classification,
+    DecisionResult,
+    Order,
+    PolicyResult,
+    UsageRecord,
+)
 
 
 class CreateTicketRequest(BaseModel):
@@ -63,6 +75,24 @@ class PolicyOut(BaseModel):
         return cls(**p.model_dump())
 
 
+class DecisionOut(BaseModel):
+    decision: Decision
+    reasons: list[EscalationReason]
+    reasons_pl: list[str] = Field(
+        description="Same reasons in Polish, ready for the operator panel."
+    )
+    threshold_used: float
+
+    @classmethod
+    def from_domain(cls, d: DecisionResult) -> "DecisionOut":
+        return cls(
+            decision=d.decision,
+            reasons=d.reasons,
+            reasons_pl=[ESCALATION_LABELS_PL[r] for r in d.reasons],
+            threshold_used=d.threshold_used,
+        )
+
+
 class UsageOut(BaseModel):
     model: str
     input_tokens: int
@@ -82,13 +112,14 @@ class UsageOut(BaseModel):
 
 
 class TriageResponse(BaseModel):
-    """What Stage 2 returns: classification + facts + policy verdict.
-
-    ``decision`` and ``draft_reply`` arrive in Stage 3.
-    """
+    """The full pipeline result for one ticket."""
 
     ticket_id: int
     classification: ClassificationOut
     order: OrderOut | None
     policy: PolicyOut
-    usage: UsageOut
+    decision: DecisionOut
+    draft_reply_pl: str | None = Field(
+        default=None, description="Null whenever the ticket escalated."
+    )
+    usage: UsageOut = Field(description="Total across every model call for this ticket.")

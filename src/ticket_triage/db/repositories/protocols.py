@@ -15,7 +15,13 @@ need to import this module to satisfy it, which keeps test fakes trivial.
 
 from typing import Protocol, runtime_checkable
 
-from ...domain.models import Classification, Order, PolicyResult, UsageRecord
+from ...domain.models import (
+    Classification,
+    DecisionResult,
+    Order,
+    PolicyResult,
+    UsageRecord,
+)
 
 
 @runtime_checkable
@@ -41,6 +47,14 @@ class TicketRepository(Protocol):
 
     def save_policy(self, ticket_id: int, policy: PolicyResult) -> None:
         """Attach the deterministic policy verdict to a ticket."""
+        ...
+
+    def save_decision(self, ticket_id: int, decision: DecisionResult) -> None:
+        """Attach the auto-vs-human decision and its reasons."""
+        ...
+
+    def save_draft_reply(self, ticket_id: int, reply: str) -> None:
+        """Store the generated reply awaiting operator approval."""
         ...
 
     def record_usage(self, ticket_id: int, stage: str, usage: UsageRecord) -> None:
