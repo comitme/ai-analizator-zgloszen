@@ -1,4 +1,4 @@
-.PHONY: help install seed run test test-all lint fmt clean
+.PHONY: help install seed run test test-all lint fmt clean eval-check eval-pilot eval sweep
 
 help:
 	@echo "install   - zainstaluj zależności (edytowalnie, z dev i ui)"
@@ -6,6 +6,10 @@ help:
 	@echo "run       - uruchom API na http://localhost:8000 (dokumentacja: /docs)"
 	@echo "test      - testy bez wywołań API (nic nie kosztuje)"
 	@echo "test-all  - wszystkie testy, w tym te wołające prawdziwy model (KOSZTUJE)"
+	@echo "eval-check - sprawdzenie pipeline'u ewaluacji bez API (oracle + offline, 0 zł)"
+	@echo "eval-pilot - 5 zgłoszeń na prawdziwym modelu: zmierz koszt przed pełnym przebiegiem"
+	@echo "eval      - pełna ewaluacja Sonnet 5 vs Haiku 4.5 (KOSZTUJE, ~kilkadziesiąt groszy)"
+	@echo "sweep     - próg pewności vs błędy automatyzacji z zapisanych predykcji (0 zł)"
 	@echo "lint      - ruff check"
 	@echo "fmt       - ruff format + autofix"
 	@echo "clean     - usuń cache i lokalną bazę"
@@ -26,6 +30,23 @@ test:
 
 test-all:
 	pytest -q
+
+# Harness check: oracle must score 100%, offline stub proves the wiring. No API key.
+eval-check:
+	python eval/run_eval.py --mode oracle --refresh
+	python eval/threshold_sweep.py --mode oracle
+	python eval/run_eval.py --mode offline --refresh
+	python eval/threshold_sweep.py --mode offline
+
+eval-pilot:
+	python eval/run_eval.py --models claude-sonnet-5 claude-haiku-4-5 --limit 5
+
+eval:
+	python eval/run_eval.py --models claude-sonnet-5 claude-haiku-4-5
+
+sweep:
+	python eval/threshold_sweep.py --model claude-sonnet-5
+	python eval/threshold_sweep.py --model claude-haiku-4-5
 
 lint:
 	ruff check src tests scripts

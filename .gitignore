@@ -34,6 +34,14 @@ htmlcov/
 *.sqlite3
 data/
 
+# --- Evaluation ---
+# Harness checks (oracle, offline stub) and pilot runs are regenerable and are NOT
+# model results - committing their numbers would invite reading them as such.
+# Only eval/reports/*_live_* (real model runs) belong in the repository.
+eval/reports/*_oracle_*
+eval/reports/*_offline_*
+eval/reports/*_limit*
+
 # --- Streamlit ---
 .streamlit/secrets.toml
 
