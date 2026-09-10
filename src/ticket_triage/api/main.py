@@ -43,7 +43,7 @@ app = FastAPI(
         "Wstępna obsługa zgłoszeń klientów sklepu e-commerce. "
         "Model klasyfikuje treść; o zgodności z regulaminem decyduje deterministyczny kod."
     ),
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 

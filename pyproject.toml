@@ -1,6 +1,6 @@
 [project]
 name = "ticket-triage"
-version = "0.3.0"
+version = "0.4.0"
 description = "AI-assisted triage of e-commerce customer tickets: classify, check return policy, draft a reply, escalate when unsure."
 requires-python = ">=3.11"
 dependencies = [
