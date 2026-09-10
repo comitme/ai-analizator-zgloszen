@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "eval_date": "2026-09-10",
+  "ground_truth_source": "Synthetic. Written and labelled by a model (Claude Opus 5) from the project's intent definitions, then reviewed against the classification prompt. Not human-verified. The models under evaluation (Claude Sonnet 5, Claude Haiku 4.5) are from the same family, so scores may be optimistic versus real customer traffic."
+}
