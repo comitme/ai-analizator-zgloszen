@@ -14,7 +14,7 @@ triage:
   # Poniżej tego progu zgłoszenie idzie do człowieka.
   # Wartość WSTĘPNA — właściwą wyznaczy eval/threshold_sweep.py na zbiorze ewaluacyjnym.
   # Confidence jest samoraportowane przez model i bywa źle skalibrowane,
-  # dlatego to tylko jeden z pięciu warunków eskalacji (patrz triage/decision.py).
+  # dlatego to tylko jeden z sześciu warunków eskalacji (patrz triage/decision.py).
   confidence_threshold: 0.75
 
 cost:
