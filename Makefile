@@ -1,9 +1,11 @@
-.PHONY: help install seed run test test-all lint fmt clean eval-check eval-pilot eval sweep
+.PHONY: help install seed run run-offline ui test test-all lint fmt clean eval-check eval-pilot eval sweep
 
 help:
 	@echo "install   - zainstaluj zależności (edytowalnie, z dev i ui)"
 	@echo "seed      - wypełnij bazę syntetycznymi zamówieniami"
 	@echo "run       - uruchom API na http://localhost:8000 (dokumentacja: /docs)"
+	@echo "run-offline - API bez klucza i bez kosztów (atrapa modelu)"
+	@echo "ui        - panel operatora na http://localhost:8501 (API musi już działać)"
 	@echo "test      - testy bez wywołań API (nic nie kosztuje)"
 	@echo "test-all  - wszystkie testy, w tym te wołające prawdziwy model (KOSZTUJE)"
 	@echo "eval-check - sprawdzenie pipeline'u ewaluacji bez API (oracle + offline, 0 zł)"
@@ -22,6 +24,14 @@ seed:
 
 run:
 	uvicorn ticket_triage.api.main:app --reload --app-dir src --port 8000
+
+# Atrapa modelu zamiast prawdziwych wywołań: pełny przepływ bez klucza i bez kosztów.
+run-offline:
+	TRIAGE_FAKE_LLM=1 uvicorn ticket_triage.api.main:app --reload --app-dir src --port 8000
+
+# Wymaga działającego API. Adres można nadpisać: TRIAGE_API_URL=http://host:port make ui
+ui:
+	streamlit run ui/app.py
 
 # Domyślny przebieg NIE woła API i nie wymaga klucza — dzięki temu faktycznie
 # uruchamiasz testy zamiast ich unikać.
