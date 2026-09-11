@@ -22,6 +22,7 @@ from ...domain.models import (
     PolicyResult,
     UsageRecord,
 )
+from ...domain.views import QueueMetrics, TicketDetail, TicketSummary
 
 
 @runtime_checkable
@@ -63,4 +64,33 @@ class TicketRepository(Protocol):
 
     def set_status(self, ticket_id: int, status: str) -> None:
         """Move the ticket through its lifecycle."""
+        ...
+
+    def record_operator_action(
+        self, ticket_id: int, *, action: str, final_reply: str | None
+    ) -> None:
+        """Close the ticket with the human's verdict (approved | edited | rejected)."""
+        ...
+
+    def list_tickets(
+        self,
+        *,
+        status: str | None = None,
+        decision: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[TicketSummary]:
+        """Page through the queue, newest first."""
+        ...
+
+    def count_tickets(self, *, status: str | None = None, decision: str | None = None) -> int:
+        """Total matching the same filters, so the caller can paginate."""
+        ...
+
+    def get_detail(self, ticket_id: int) -> TicketDetail | None:
+        """Everything known about one ticket, or ``None`` when the id is unknown."""
+        ...
+
+    def metrics(self, *, days: int | None = None) -> QueueMetrics:
+        """Aggregate counts, automation rate and cost for the metrics page."""
         ...

@@ -6,8 +6,9 @@ change (versioning, field renames for clients) without dragging the domain with 
 
 from datetime import date
 from decimal import Decimal
+from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ..domain.enums import (
     ESCALATION_LABELS_PL,
@@ -23,6 +24,7 @@ from ..domain.models import (
     PolicyResult,
     UsageRecord,
 )
+from ..domain.views import TicketSummary
 
 
 class CreateTicketRequest(BaseModel):
@@ -123,3 +125,46 @@ class TriageResponse(BaseModel):
         default=None, description="Null whenever the ticket escalated."
     )
     usage: UsageOut = Field(description="Total across every model call for this ticket.")
+
+
+# --- Operator panel ---------------------------------------------------------
+
+
+class TicketListResponse(BaseModel):
+    """A page of the queue plus the total, so the client can show 'x of y'."""
+
+    total: int
+    limit: int
+    offset: int
+    items: list[TicketSummary]
+
+
+class OperatorAction(StrEnum):
+    """What the human did with the draft. This is the live-traffic quality signal."""
+
+    APPROVED = "approved"
+    """Sent the generated draft unchanged - the model got it right."""
+
+    EDITED = "edited"
+    """Sent a corrected version - close, but not good enough."""
+
+    REJECTED = "rejected"
+    """Discarded the draft and handled it another way - the model was wrong."""
+
+
+class ResolveTicketRequest(BaseModel):
+    action: OperatorAction
+    final_reply: str | None = Field(
+        default=None,
+        max_length=20_000,
+        description=(
+            "What was actually sent. Required for 'edited'; ignored for 'approved', "
+            "where the stored draft is by definition what went out."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _an_edit_carries_its_text(self) -> "ResolveTicketRequest":
+        if self.action is OperatorAction.EDITED and not (self.final_reply or "").strip():
+            raise ValueError("final_reply jest wymagane przy akcji 'edited'")
+        return self

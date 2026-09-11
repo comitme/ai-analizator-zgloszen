@@ -14,7 +14,7 @@ import logging
 from typing import Annotated
 
 import anthropic
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ...db.repositories.sqlalchemy_impl import (
     SqlAlchemyOrderRepository,
@@ -23,6 +23,7 @@ from ...db.repositories.sqlalchemy_impl import (
 from ...db.session import session_scope
 from ...domain.enums import Decision, TicketStatus
 from ...domain.models import Order
+from ...domain.views import TicketDetail
 from ...llm.classifier import Classifier
 from ...triage.service import TriageService
 from ..deps import get_classifier, get_triage_service
@@ -30,8 +31,11 @@ from ..schemas import (
     ClassificationOut,
     CreateTicketRequest,
     DecisionOut,
+    OperatorAction,
     OrderOut,
     PolicyOut,
+    ResolveTicketRequest,
+    TicketListResponse,
     TriageResponse,
     UsageOut,
 )
@@ -83,9 +87,7 @@ def create_ticket(
     # --- 4. Policy, decision, and a draft when the ticket can be auto-answered
     # May spend money again; the service handles its own generation failures by
     # degrading to escalation rather than throwing away the classification.
-    outcome = service.run(
-        ticket_text=payload.text, classification=classification, order=order
-    )
+    outcome = service.run(ticket_text=payload.text, classification=classification, order=order)
 
     # --- 5. Persist everything in one transaction ----------------------------
     total_usage = classification_usage
@@ -119,6 +121,80 @@ def create_ticket(
         draft_reply_pl=outcome.draft_reply_pl,
         usage=UsageOut.from_domain(total_usage),
     )
+
+
+@router.get("", response_model=TicketListResponse)
+def list_tickets(
+    status_filter: Annotated[
+        TicketStatus | None, Query(alias="status", description="Filtr po statusie zgłoszenia.")
+    ] = None,
+    decision_filter: Annotated[
+        Decision | None, Query(alias="decision", description="Filtr po decyzji systemu.")
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> TicketListResponse:
+    """The operator queue.
+
+    Paged rather than "return everything": the panel is the one place that would
+    happily select the whole table as it grows. Filters are typed as enums so a
+    typo comes back as 422 - an unknown filter must never look like an empty queue.
+    """
+    with session_scope() as session:
+        tickets = SqlAlchemyTicketRepository(session)
+        status_value = status_filter.value if status_filter else None
+        decision_value = decision_filter.value if decision_filter else None
+        return TicketListResponse(
+            total=tickets.count_tickets(status=status_value, decision=decision_value),
+            limit=limit,
+            offset=offset,
+            items=tickets.list_tickets(
+                status=status_value, decision=decision_value, limit=limit, offset=offset
+            ),
+        )
+
+
+@router.get("/{ticket_id}", response_model=TicketDetail)
+def get_ticket(ticket_id: int) -> TicketDetail:
+    """One ticket with the full audit trail: classification, policy, decision, cost."""
+    with session_scope() as session:
+        detail = SqlAlchemyTicketRepository(session).get_detail(ticket_id)
+    if detail is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Zgłoszenie {ticket_id} nie istnieje.",
+        )
+    return detail
+
+
+@router.post("/{ticket_id}/resolve", response_model=TicketDetail)
+def resolve_ticket(ticket_id: int, payload: ResolveTicketRequest) -> TicketDetail:
+    """Close a ticket with the operator's verdict on the draft.
+
+    The only route that writes ground truth. These verdicts accumulate into the draft
+    acceptance rate on the metrics page - model quality measured on real traffic
+    instead of on the evaluation set we wrote ourselves.
+    """
+    with session_scope() as session:
+        tickets = SqlAlchemyTicketRepository(session)
+        current = tickets.get_detail(ticket_id)
+        if current is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Zgłoszenie {ticket_id} nie istnieje.",
+            )
+
+        # An approved draft *is* what was sent, so record it as such rather than
+        # leaving the sent text empty and unanswerable later.
+        final_reply = (
+            current.draft_reply
+            if payload.action is OperatorAction.APPROVED
+            else payload.final_reply
+        )
+        tickets.record_operator_action(
+            ticket_id, action=payload.action.value, final_reply=final_reply
+        )
+        return tickets.get_detail(ticket_id)
 
 
 def _mark_failed(ticket_id: int) -> None:

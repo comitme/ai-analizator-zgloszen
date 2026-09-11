@@ -1,7 +1,18 @@
 """SQLAlchemy-backed implementations of the repository protocols."""
 
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ...domain.enums import (
+    Decision,
+    EscalationReason,
+    Intent,
+    PolicyOutcome,
+    TicketStatus,
+)
 from ...domain.models import (
     Classification,
     DecisionResult,
@@ -9,6 +20,7 @@ from ...domain.models import (
     PolicyResult,
     UsageRecord,
 )
+from ...domain.views import CostBreakdown, QueueMetrics, TicketDetail, TicketSummary
 from ..schema import LlmCallRow, OrderRow, TicketRow
 
 
@@ -96,3 +108,223 @@ class SqlAlchemyTicketRepository:
 
     def set_status(self, ticket_id: int, status: str) -> None:
         self._require(ticket_id).status = status
+
+    def record_operator_action(
+        self, ticket_id: int, *, action: str, final_reply: str | None
+    ) -> None:
+        """Close a ticket with what the human actually did.
+
+        The only place real ground truth enters the system. ``approved`` means the
+        model was right on live traffic; ``edited`` and ``rejected`` are labelled
+        mistakes worth re-reading when tuning the prompt or the threshold.
+        """
+        row = self._require(ticket_id)
+        row.operator_action = action
+        row.final_reply = final_reply
+        row.answered_at = datetime.now(UTC)
+        row.status = TicketStatus.ANSWERED.value
+
+    # --- Reads for the operator panel ---------------------------------------
+
+    def list_tickets(
+        self,
+        *,
+        status: str | None = None,
+        decision: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[TicketSummary]:
+        """Newest first, because an operator works the top of the queue.
+
+        Ordered by id as well as timestamp: two tickets submitted in the same second
+        get identical ``created_at`` values on SQLite, and "newest first" has to stay
+        deterministic anyway.
+        """
+        stmt = _filtered(select(TicketRow), status=status, decision=decision)
+        stmt = (
+            stmt.order_by(TicketRow.created_at.desc(), TicketRow.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        rows = self._session.execute(stmt).unique().scalars().all()
+        return [_to_summary(r) for r in rows]
+
+    def count_tickets(self, *, status: str | None = None, decision: str | None = None) -> int:
+        """Total matching the same filters - the page size must not change it."""
+        stmt = _filtered(
+            select(func.count()).select_from(TicketRow), status=status, decision=decision
+        )
+        return int(self._session.execute(stmt).scalar_one())
+
+    def get_detail(self, ticket_id: int) -> TicketDetail | None:
+        """One ticket with its full audit trail, or ``None`` when the id is unknown."""
+        row = self._session.get(TicketRow, ticket_id)
+        if row is None:
+            return None
+
+        cost_usd, cost_pln, tokens_in, tokens_out = self._session.execute(
+            select(
+                func.coalesce(func.sum(LlmCallRow.cost_usd), 0),
+                func.coalesce(func.sum(LlmCallRow.cost_pln), 0),
+                func.coalesce(func.sum(LlmCallRow.input_tokens), 0),
+                func.coalesce(func.sum(LlmCallRow.output_tokens), 0),
+            ).where(LlmCallRow.ticket_id == ticket_id)
+        ).one()
+
+        return TicketDetail(
+            id=row.id,
+            created_at=row.created_at,
+            status=TicketStatus(row.status),
+            channel=row.channel,
+            raw_text=row.raw_text,
+            intent=Intent(row.intent) if row.intent else None,
+            confidence=row.confidence,
+            order_ref=row.order_ref,
+            reasoning=row.reasoning,
+            policy_outcome=PolicyOutcome(row.policy_outcome) if row.policy_outcome else None,
+            policy_reason=row.policy_reason,
+            policy_rule_id=row.policy_rule_id,
+            decision=Decision(row.decision) if row.decision else None,
+            escalation_reasons=_split_reasons(row.escalation_reasons),
+            draft_reply=row.draft_reply,
+            operator_action=row.operator_action,
+            final_reply=row.final_reply,
+            answered_at=row.answered_at,
+            order_purchase_date=row.order.purchase_date if row.order else None,
+            order_category=row.order.category if row.order else None,
+            order_amount_pln=row.order.amount_pln if row.order else None,
+            cost_usd=Decimal(str(cost_usd)),
+            cost_pln=Decimal(str(cost_pln)),
+            input_tokens=int(tokens_in),
+            output_tokens=int(tokens_out),
+        )
+
+    def metrics(self, *, days: int | None = None) -> QueueMetrics:
+        """Aggregate the queue. Every count is a ``GROUP BY``, not a Python loop."""
+        since = datetime.now(UTC) - timedelta(days=days) if days else None
+
+        total = int(
+            self._session.execute(_since(select(func.count(TicketRow.id)), since)).scalar_one()
+        )
+        by_status = self._group(TicketRow.status, since)
+        by_decision = self._group(TicketRow.decision, since)
+        by_intent = self._group(TicketRow.intent, since)
+        by_operator_action = self._group(TicketRow.operator_action, since)
+
+        # Reasons live comma-joined in one column, so they are split here rather than
+        # in SQL. Only escalated rows are fetched, and only that one column.
+        joined_reasons = self._session.execute(
+            _since(
+                select(TicketRow.escalation_reasons).where(
+                    TicketRow.escalation_reasons.is_not(None)
+                ),
+                since,
+            )
+        ).scalars()
+        by_reason: dict[str, int] = {}
+        for joined in joined_reasons:
+            for reason in _split_reasons(joined):
+                by_reason[reason.value] = by_reason.get(reason.value, 0) + 1
+
+        triaged = sum(by_decision.values())
+        auto = by_decision.get(Decision.AUTO_REPLY.value, 0)
+        reviewed = sum(by_operator_action.values())
+        approved = by_operator_action.get("approved", 0)
+
+        mean_confidence = self._session.execute(
+            _since(
+                select(func.avg(TicketRow.confidence)).where(TicketRow.confidence.is_not(None)),
+                since,
+            )
+        ).scalar_one_or_none()
+
+        return QueueMetrics(
+            period_days=days,
+            total_tickets=total,
+            by_status=by_status,
+            by_decision=by_decision,
+            by_intent=by_intent,
+            by_escalation_reason=dict(sorted(by_reason.items(), key=lambda kv: -kv[1])),
+            by_operator_action=by_operator_action,
+            automation_rate=auto / triaged if triaged else None,
+            draft_acceptance_rate=approved / reviewed if reviewed else None,
+            mean_confidence=float(mean_confidence) if mean_confidence is not None else None,
+            cost=self._cost(since, total),
+        )
+
+    def _group(self, column, since: datetime | None) -> dict[str, int]:
+        stmt = _since(
+            select(column, func.count()).where(column.is_not(None)).group_by(column), since
+        )
+        return {str(value): int(count) for value, count in self._session.execute(stmt)}
+
+    def _cost(self, since: datetime | None, total_tickets: int) -> CostBreakdown:
+        totals = select(
+            func.coalesce(func.sum(LlmCallRow.cost_usd), 0),
+            func.coalesce(func.sum(LlmCallRow.cost_pln), 0),
+            func.coalesce(func.sum(LlmCallRow.input_tokens), 0),
+            func.coalesce(func.sum(LlmCallRow.output_tokens), 0),
+        )
+        if since is not None:
+            totals = totals.where(LlmCallRow.created_at >= since)
+        usd, pln, tokens_in, tokens_out = self._session.execute(totals).one()
+
+        def sliced(column) -> dict[str, Decimal]:
+            stmt = select(column, func.coalesce(func.sum(LlmCallRow.cost_usd), 0)).group_by(column)
+            if since is not None:
+                stmt = stmt.where(LlmCallRow.created_at >= since)
+            return {str(key): Decimal(str(value)) for key, value in self._session.execute(stmt)}
+
+        total_usd = Decimal(str(usd))
+        return CostBreakdown(
+            total_usd=total_usd,
+            total_pln=Decimal(str(pln)),
+            per_ticket_usd=total_usd / total_tickets if total_tickets else Decimal("0"),
+            input_tokens=int(tokens_in),
+            output_tokens=int(tokens_out),
+            by_model=sliced(LlmCallRow.model),
+            by_stage=sliced(LlmCallRow.stage),
+        )
+
+
+def _since(stmt, since: datetime | None):
+    """Restrict a ticket query to the trailing window, if one was asked for."""
+    return stmt.where(TicketRow.created_at >= since) if since is not None else stmt
+
+
+def _filtered(stmt, *, status: str | None, decision: str | None):
+    """Apply the queue filters to any statement, so list and count cannot drift apart."""
+    if status:
+        stmt = stmt.where(TicketRow.status == status)
+    if decision:
+        stmt = stmt.where(TicketRow.decision == decision)
+    return stmt
+
+
+def _split_reasons(joined: str | None) -> list[EscalationReason]:
+    """Parse the comma-joined column, skipping values this build does not know."""
+    if not joined:
+        return []
+    parsed = []
+    for token in joined.split(","):
+        try:
+            parsed.append(EscalationReason(token.strip()))
+        except ValueError:  # written by a newer version - not worth crashing the queue
+            continue
+    return parsed
+
+
+def _to_summary(row: TicketRow) -> TicketSummary:
+    first_line = row.raw_text.strip().splitlines()[0] if row.raw_text.strip() else ""
+    return TicketSummary(
+        id=row.id,
+        created_at=row.created_at,
+        status=TicketStatus(row.status),
+        preview=first_line[:120],
+        intent=Intent(row.intent) if row.intent else None,
+        confidence=row.confidence,
+        order_ref=row.order_ref,
+        decision=Decision(row.decision) if row.decision else None,
+        escalation_reasons=_split_reasons(row.escalation_reasons),
+        has_draft=bool(row.draft_reply),
+    )

@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from ..config import get_app_config
 from ..db.session import init_engine
 from ..policy.loader import get_return_policy
-from .routers import tickets
+from .routers import metrics, tickets
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -48,6 +48,7 @@ app = FastAPI(
 )
 
 app.include_router(tickets.router)
+app.include_router(metrics.router)
 
 
 @app.get("/health", tags=["meta"])
