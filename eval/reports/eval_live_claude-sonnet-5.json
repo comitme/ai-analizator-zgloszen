@@ -1,0 +1,138 @@
+{
+  "n_rows": 40,
+  "n_ok": 40,
+  "n_no_answer": 0,
+  "accuracy_strict": 1.0,
+  "accuracy_strict_ci": [
+    0.9123754607496077,
+    1.0
+  ],
+  "accuracy_lenient": 1.0,
+  "accuracy_lenient_ci": [
+    0.9123754607496077,
+    1.0
+  ],
+  "majority_baseline": 0.225,
+  "majority_intent": "return_no_reason",
+  "order_ref_accuracy": 1.0,
+  "per_rep_accuracy": [
+    1.0
+  ],
+  "per_class": [
+    {
+      "intent": "quality_complaint",
+      "support": 9,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    {
+      "intent": "return_no_reason",
+      "support": 9,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    {
+      "intent": "shipping_status",
+      "support": 8,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    {
+      "intent": "refund_status",
+      "support": 7,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    {
+      "intent": "other",
+      "support": 7,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  ],
+  "confusion": {
+    "quality_complaint": {
+      "quality_complaint": 9,
+      "return_no_reason": 0,
+      "shipping_status": 0,
+      "refund_status": 0,
+      "other": 0
+    },
+    "return_no_reason": {
+      "quality_complaint": 0,
+      "return_no_reason": 9,
+      "shipping_status": 0,
+      "refund_status": 0,
+      "other": 0
+    },
+    "shipping_status": {
+      "quality_complaint": 0,
+      "return_no_reason": 0,
+      "shipping_status": 8,
+      "refund_status": 0,
+      "other": 0
+    },
+    "refund_status": {
+      "quality_complaint": 0,
+      "return_no_reason": 0,
+      "shipping_status": 0,
+      "refund_status": 7,
+      "other": 0
+    },
+    "other": {
+      "quality_complaint": 0,
+      "return_no_reason": 0,
+      "shipping_status": 0,
+      "refund_status": 0,
+      "other": 7
+    }
+  },
+  "calibration": [
+    {
+      "low": 0.0,
+      "high": 0.5,
+      "n": 1,
+      "accuracy": 1.0,
+      "mean_confidence": 0.45
+    },
+    {
+      "low": 0.5,
+      "high": 0.75,
+      "n": 0,
+      "accuracy": null,
+      "mean_confidence": null
+    },
+    {
+      "low": 0.75,
+      "high": 0.9,
+      "n": 7,
+      "accuracy": 1.0,
+      "mean_confidence": 0.8214285714285714
+    },
+    {
+      "low": 0.9,
+      "high": 1.0,
+      "n": 32,
+      "accuracy": 1.0,
+      "mean_confidence": 0.9325
+    }
+  ],
+  "expected_calibration_error": 0.099,
+  "errors": [],
+  "total_input_tokens": 76152,
+  "total_output_tokens": 3751,
+  "total_cost_usd": "0.189814",
+  "cost_per_row_usd": "0.00474535",
+  "tokens_per_row": [
+    1949,
+    1992.0,
+    2193
+  ],
+  "latency_ms_p50": 2385.595200001262,
+  "latency_ms_p95": 3520.8841000003304
+}

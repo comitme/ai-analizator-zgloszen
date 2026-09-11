@@ -27,6 +27,45 @@ def render_eval(
         f"- Uruchomiono: {run.created_at:%Y-%m-%d %H:%M} UTC",
         f"- Źródło etykiet: {ground_truth_source}",
         "",
+        "## Czym jest ten raport",
+        "",
+        f"Każdy wiersz zbioru testowego (`eval/dataset/tickets.jsonl`) to jedno zgłoszenie "
+        "klienta z ręcznie ustaloną poprawną intencją i, jeśli dotyczy, numerem zamówienia. "
+        f"Ten raport porównuje odpowiedzi modelu `{run.model}` z tymi etykietami — bez żadnej "
+        "generacji odpowiedzi, wyłącznie klasyfikacja.",
+        "",
+        "**Legenda:**",
+        "",
+        "- **Accuracy (ścisła)** — % zgłoszeń, w których model wskazał dokładnie tę samą "
+        "intencję co etykieta.",
+        "- **Accuracy (łagodna)** — jak wyżej, ale dla zgłoszeń oznaczonych jako "
+        "niejednoznaczne (`acceptable_intents` w datasetcie) każda z dopuszczalnych intencji "
+        "liczy się jako poprawna.",
+        "- **95% CI (Wilson)** — przedział ufności na trafność. Przy małej próbce prawdziwa "
+        "(populacyjna) trafność modelu może się mieścić gdziekolwiek w tym przedziale, nie "
+        "tylko w punktowym wyniku.",
+        "- **Baseline klasy większościowej** — trafność, jaką dałoby zgadywanie zawsze tej "
+        "samej, najczęstszej klasy. Punkt odniesienia: model musi wyraźnie go przebić, żeby "
+        "wynik cokolwiek znaczył.",
+        "- **Poprawny numer zamówienia** — % zgłoszeń, w których numer zamówienia wyciągnięty "
+        "z tekstu zgadza się z oczekiwanym.",
+        "- **Brak odpowiedzi** — zgłoszenia, w których model nie zwrócił użytecznej "
+        "odpowiedzi (błąd API, odmowa, zły format JSON). To osobna kategoria — nie liczy się "
+        "jako błędna klasyfikacja, tylko jako brak danych.",
+        "- **Precision / Recall / F1 (per klasa)** — Precision: spośród zgłoszeń "
+        "przypisanych przez model do tej klasy, ile faktycznie do niej należało. Recall: "
+        "spośród zgłoszeń faktycznie należących do tej klasy, ile model rozpoznał. F1: "
+        "średnia harmoniczna obu.",
+        "- **Macierz pomyłek** — wiersze to prawdziwa etykieta, kolumny to predykcja modelu; "
+        "liczby poza przekątną to konkretne pomyłki (który typ z którym był mylony).",
+        "- **Kalibracja pewności / ECE** — czy deklarowana pewność modelu (`confidence`, "
+        "0–1) odpowiada jego faktycznej trafności w danym przedziale. Expected Calibration "
+        "Error = 0% oznacza idealną kalibrację; im wyżej, tym bardziej pewność modelu "
+        "rozjeżdża się z rzeczywistością (w dowolną stronę — może być zarówno zbyt pewny "
+        "siebie, jak i zbyt ostrożny).",
+        "- **Koszt i wydajność** — realne zużycie tokenów i koszt liczony wg cennika w "
+        "`llm/pricing.py`, oraz czas odpowiedzi API (p50/p95 = mediana / 95. percentyl).",
+        "",
         "## Wynik główny",
         "",
         "| Metryka | Wartość | 95% CI (Wilson) |",
@@ -128,6 +167,39 @@ def render_sweep(model: str, mode: str, s: SweepResult, current_threshold: float
         f"- Budżet błędu automatycznych odpowiedzi: {_pct(s.max_auto_error_rate)}",
         f"- Obecny próg w `config/app.yaml`: **{current_threshold}**",
         f"- Rekomendowany próg: **{recommended}**",
+        "",
+        "## Czym jest ten raport",
+        "",
+        "Próg pewności (`confidence_threshold`) decyduje, czy zgłoszenie z daną pewnością "
+        "modelu trafia do automatycznej odpowiedzi, czy do człowieka. Ten raport testuje "
+        "wiele wartości progu na już policzonych predykcjach modelu (plik "
+        f"`predictions_{mode}_{model}.json`) — nie woła ponownie API, więc jest darmowy do "
+        "przeliczenia dowolną ilość razy.",
+        "",
+        "**Legenda:**",
+        "",
+        "- **Próg** — testowana wartość `confidence_threshold`; poniżej niej zgłoszenie "
+        "zawsze trafia do człowieka, niezależnie od pozostałych reguł.",
+        "- **Auto** — ile z N zgłoszeń zostałoby obsłużonych automatycznie przy tym progu "
+        "(X/N), licząc też twarde reguły biznesowe (kwota, słowa prawne, brak zamówienia w "
+        "bazie, kategoria wykluczona z regulaminu) — nie tylko sam próg pewności.",
+        "- **Automatyzacja** — kolumna Auto jako % wszystkich zgłoszeń.",
+        "- **Błędne auto** — ile automatycznie obsłużonych zgłoszeń miało błędną intencję "
+        "lub błędny numer zamówienia.",
+        "- **Błąd wśród auto** — Błędne auto jako % samych automatycznych odpowiedzi. To "
+        "ryzyko z perspektywy klienta, który dostał auto-odpowiedź: jak często taka "
+        "odpowiedź jest błędna.",
+        "- **Błędne auto / wszystkie** — Błędne auto jako % całego ruchu (wszystkich "
+        "zgłoszeń, nie tylko automatycznych). To ryzyko z perspektywy całego wolumenu.",
+        "- **Sufit automatyzacji** — maksymalna możliwa automatyzacja przy idealnej (100% "
+        "trafnej) klasyfikacji. Reszta zgłoszeń i tak trafia do człowieka przez twarde "
+        "reguły biznesowe, niezależnie od tego, jak dobry jest model — to jest limit, "
+        "którego żaden próg ani model nie przebije.",
+        '- **Budżet błędu** — maksymalny akceptowalny "Błąd wśród auto", jaki bierze pod '
+        "uwagę rekomendacja progu (parametr `--max-error`, domyślnie 5%).",
+        "- **Rekomendowany próg** — próg dający największą automatyzację, nie przekraczając "
+        "budżetu błędu; jeśli kilka progów daje ten sam wynik, wybierany jest najwyższy "
+        "(bezpieczniejszy) z nich.",
         "",
         "| Próg | Auto | Automatyzacja | Błędne auto | Błąd wśród auto | Błędne auto / wszystkie |",
         "|---|---|---|---|---|---|",

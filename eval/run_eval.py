@@ -140,6 +140,22 @@ def main() -> int:
         )
 
     if len(summaries) > 1:
+        intro = [
+            "Ten sam zbiór testowy (`eval/dataset/tickets.jsonl`), uruchomiony osobno dla "
+            "każdego modelu, żeby porównać jakość i koszt klasyfikacji. Szczegóły każdej "
+            "kolumny — patrz plik `eval_{mode}_<model>.md` danego modelu (sekcja "
+            '"Czym jest ten raport"). W skrócie:',
+            "",
+            "- **Accuracy / 95% CI** — trafność klasyfikacji i przedział ufności (Wilson).",
+            "- **Łagodna** — trafność licząca zgłoszenia niejednoznaczne jako poprawne, "
+            "jeśli model wskazał którąkolwiek z dopuszczalnych intencji.",
+            "- **Nr zamówienia** — % poprawnie wyekstrahowanych numerów zamówień.",
+            "- **ECE** — błąd kalibracji pewności (0% = deklarowana pewność modelu idealnie "
+            "odpowiada jego faktycznej trafności).",
+            "- **Koszt / zgłoszenie** — średni koszt jednego wywołania klasyfikatora w USD.",
+            "- **p50** — mediana czasu odpowiedzi API w milisekundach.",
+            "",
+        ]
         rows = [
             "| Model | Accuracy | 95% CI | Łagodna | Nr zamówienia | ECE "
             "| Koszt / zgłoszenie | p50 |",
@@ -154,7 +170,12 @@ def main() -> int:
                 f"${m.cost_per_row_usd:.6f} | {m.latency_ms_p50 or 0:.0f} ms |"
             )
         (args.reports / f"comparison_{args.mode}{suffix}.md").write_text(
-            f"# Porównanie modeli ({args.mode})\n\n" + "\n".join(rows) + "\n", encoding="utf-8"
+            f"# Porównanie modeli ({args.mode})\n\n"
+            + "\n".join(intro)
+            + "\n"
+            + "\n".join(rows)
+            + "\n",
+            encoding="utf-8",
         )
         print(f"porównanie → comparison_{args.mode}{suffix}.md")
 
