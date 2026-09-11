@@ -35,7 +35,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 markers = [
     # Tests that call the real Anthropic API and cost money.
     # Excluded from the default run: `pytest -m "not llm"` is what `make test` does.
@@ -48,3 +48,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+# `ui` to nasz pakiet w katalogu głównym, nie biblioteka zewnętrzna.
+known-first-party = ["ticket_triage", "ui"]
