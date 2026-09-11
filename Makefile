@@ -1,5 +1,7 @@
 .PHONY: help install seed run run-offline ui test test-all lint fmt clean eval-check eval-pilot eval sweep
 
+# Wygodne skróty dla Linuksa i macOS. Na Windowsie nie ma `make` ani składni
+# VAR=wartość polecenie - tam działa: python scripts/dev.py api|ui|seed
 help:
 	@echo "install   - zainstaluj zależności (edytowalnie, z dev i ui)"
 	@echo "seed      - wypełnij bazę syntetycznymi zamówieniami"
@@ -15,6 +17,8 @@ help:
 	@echo "lint      - ruff check"
 	@echo "fmt       - ruff format + autofix"
 	@echo "clean     - usuń cache i lokalną bazę"
+	@echo ""
+	@echo "Windows (bez make): python scripts/dev.py api --offline | ui | seed"
 
 install:
 	pip install -e ".[dev,ui]"
