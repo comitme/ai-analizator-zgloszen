@@ -131,6 +131,7 @@ class SqlAlchemyTicketRepository:
         *,
         status: str | None = None,
         decision: str | None = None,
+        policy_outcome: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[TicketSummary]:
@@ -140,7 +141,9 @@ class SqlAlchemyTicketRepository:
         get identical ``created_at`` values on SQLite, and "newest first" has to stay
         deterministic anyway.
         """
-        stmt = _filtered(select(TicketRow), status=status, decision=decision)
+        stmt = _filtered(
+            select(TicketRow), status=status, decision=decision, policy_outcome=policy_outcome
+        )
         stmt = (
             stmt.order_by(TicketRow.created_at.desc(), TicketRow.id.desc())
             .limit(limit)
@@ -149,10 +152,19 @@ class SqlAlchemyTicketRepository:
         rows = self._session.execute(stmt).unique().scalars().all()
         return [_to_summary(r) for r in rows]
 
-    def count_tickets(self, *, status: str | None = None, decision: str | None = None) -> int:
+    def count_tickets(
+        self,
+        *,
+        status: str | None = None,
+        decision: str | None = None,
+        policy_outcome: str | None = None,
+    ) -> int:
         """Total matching the same filters - the page size must not change it."""
         stmt = _filtered(
-            select(func.count()).select_from(TicketRow), status=status, decision=decision
+            select(func.count()).select_from(TicketRow),
+            status=status,
+            decision=decision,
+            policy_outcome=policy_outcome,
         )
         return int(self._session.execute(stmt).scalar_one())
 
@@ -297,12 +309,14 @@ def _since(stmt, since: datetime | None):
     return stmt.where(TicketRow.created_at >= since) if since is not None else stmt
 
 
-def _filtered(stmt, *, status: str | None, decision: str | None):
+def _filtered(stmt, *, status: str | None, decision: str | None, policy_outcome: str | None = None):
     """Apply the queue filters to any statement, so list and count cannot drift apart."""
     if status:
         stmt = stmt.where(TicketRow.status == status)
     if decision:
         stmt = stmt.where(TicketRow.decision == decision)
+    if policy_outcome:
+        stmt = stmt.where(TicketRow.policy_outcome == policy_outcome)
     return stmt
 
 
@@ -329,6 +343,7 @@ def _to_summary(row: TicketRow) -> TicketSummary:
         intent=Intent(row.intent) if row.intent else None,
         confidence=row.confidence,
         order_ref=row.order_ref,
+        policy_outcome=PolicyOutcome(row.policy_outcome) if row.policy_outcome else None,
         decision=Decision(row.decision) if row.decision else None,
         escalation_reasons=_split_reasons(row.escalation_reasons),
         has_draft=bool(row.draft_reply),

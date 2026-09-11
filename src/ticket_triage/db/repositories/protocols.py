@@ -77,13 +77,20 @@ class TicketRepository(Protocol):
         *,
         status: str | None = None,
         decision: str | None = None,
+        policy_outcome: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[TicketSummary]:
         """Page through the queue, newest first."""
         ...
 
-    def count_tickets(self, *, status: str | None = None, decision: str | None = None) -> int:
+    def count_tickets(
+        self,
+        *,
+        status: str | None = None,
+        decision: str | None = None,
+        policy_outcome: str | None = None,
+    ) -> int:
         """Total matching the same filters, so the caller can paginate."""
         ...
 

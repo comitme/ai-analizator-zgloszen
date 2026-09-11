@@ -21,7 +21,7 @@ from ...db.repositories.sqlalchemy_impl import (
     SqlAlchemyTicketRepository,
 )
 from ...db.session import session_scope
-from ...domain.enums import Decision, TicketStatus
+from ...domain.enums import Decision, PolicyOutcome, TicketStatus
 from ...domain.models import Order
 from ...domain.views import TicketDetail
 from ...llm.classifier import Classifier
@@ -131,6 +131,10 @@ def list_tickets(
     decision_filter: Annotated[
         Decision | None, Query(alias="decision", description="Filtr po decyzji systemu.")
     ] = None,
+    policy_filter: Annotated[
+        PolicyOutcome | None,
+        Query(alias="policy_outcome", description="Filtr po wyniku oceny regulaminu."),
+    ] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> TicketListResponse:
@@ -144,12 +148,19 @@ def list_tickets(
         tickets = SqlAlchemyTicketRepository(session)
         status_value = status_filter.value if status_filter else None
         decision_value = decision_filter.value if decision_filter else None
+        policy_value = policy_filter.value if policy_filter else None
         return TicketListResponse(
-            total=tickets.count_tickets(status=status_value, decision=decision_value),
+            total=tickets.count_tickets(
+                status=status_value, decision=decision_value, policy_outcome=policy_value
+            ),
             limit=limit,
             offset=offset,
             items=tickets.list_tickets(
-                status=status_value, decision=decision_value, limit=limit, offset=offset
+                status=status_value,
+                decision=decision_value,
+                policy_outcome=policy_value,
+                limit=limit,
+                offset=offset,
             ),
         )
 

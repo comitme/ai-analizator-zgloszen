@@ -4,6 +4,8 @@ These back the Streamlit queue: list what needs attention, open one ticket, reco
 what the human decided.
 """
 
+from ticket_triage.domain.enums import Intent
+
 from .conftest import classification as _classification
 from .conftest import override_classifier as _override_classifier
 
@@ -246,3 +248,38 @@ class TestOperatorResolution:
 
         assert response.status_code == 404
         assert "424242" in response.json()["detail"]
+
+
+class TestPolicyOutcomeFilter:
+    """Reply quality is judged separately for accepted and refused requests.
+
+    A polite refusal and a confirmed return are different writing jobs, and the
+    refusals are where a bad sentence costs a customer.
+    """
+
+    def _allowed_and_not_applicable(self, client):
+        """A high-value order is NOT the counter-example: the policy still says the
+        return is allowed, and the escalation happens one layer later, in the decision
+        engine. A shipping question is what the policy genuinely has nothing to say
+        about."""
+        _override_classifier(_classification())
+        client.post("/tickets", json={"text": "Zwrot butów, zamówienie 10432."})
+        _override_classifier(_classification(intent=Intent.SHIPPING_STATUS))
+        client.post("/tickets", json={"text": "Gdzie paczka, zamówienie 10432?"})
+
+    def test_filtering_by_policy_outcome_returns_only_accepted(self, client):
+        self._allowed_and_not_applicable(client)
+
+        body = client.get("/tickets", params={"policy_outcome": "allowed"}).json()
+
+        assert body["total"] == 1
+        assert body["items"][0]["policy_outcome"] == "allowed"
+
+    def test_summary_exposes_the_policy_outcome(self, client):
+        _override_classifier(_classification())
+        client.post("/tickets", json={"text": "Zwrot butów, zamówienie 10432."})
+
+        assert client.get("/tickets").json()["items"][0]["policy_outcome"] == "allowed"
+
+    def test_unknown_outcome_is_rejected(self, client):
+        assert client.get("/tickets", params={"policy_outcome": "wymyslone"}).status_code == 422

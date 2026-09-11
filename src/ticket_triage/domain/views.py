@@ -30,6 +30,7 @@ class TicketSummary(BaseModel):
     confidence: float | None = None
     order_ref: str | None = None
 
+    policy_outcome: PolicyOutcome | None = None
     decision: Decision | None = None
     escalation_reasons: list[EscalationReason] = Field(default_factory=list)
     has_draft: bool = False

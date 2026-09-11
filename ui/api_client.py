@@ -57,13 +57,20 @@ class TriageApi:
         *,
         status: str | None = None,
         decision: str | None = None,
+        policy_outcome: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> dict[str, Any]:
         return self._request(
             "GET",
             "/tickets",
-            params=_present(status=status, decision=decision, limit=limit, offset=offset),
+            params=_present(
+                status=status,
+                decision=decision,
+                policy_outcome=policy_outcome,
+                limit=limit,
+                offset=offset,
+            ),
         )
 
     def get_ticket(self, ticket_id: int) -> dict[str, Any]:

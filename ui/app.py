@@ -27,6 +27,7 @@ nawigacja = st.navigation(
     [
         st.Page("views/nowe_zgloszenie.py", title="Nowe zgłoszenie", icon="📮", default=True),
         st.Page("views/kolejka.py", title="Kolejka", icon="📥"),
+        st.Page("views/odpowiedzi.py", title="Odpowiedzi modelu", icon="✉️"),
         st.Page("views/metryki.py", title="Metryki", icon="📊"),
     ]
 )
