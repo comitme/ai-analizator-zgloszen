@@ -18,7 +18,7 @@ help:
 	@echo "fmt       - ruff format + autofix"
 	@echo "clean     - usuń cache i lokalną bazę"
 	@echo ""
-	@echo "Windows (bez make): python scripts/dev.py api --offline | ui | seed"
+	@echo "Windows (bez make): python scripts/dev.py api [--offline] | ui | status | stop | seed"
 
 install:
 	pip install -e ".[dev,ui]"
