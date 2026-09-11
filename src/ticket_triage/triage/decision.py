@@ -78,9 +78,7 @@ class DecisionEngine:
         )
 
     @staticmethod
-    def force_escalation(
-        base: DecisionResult, reason: EscalationReason
-    ) -> DecisionResult:
+    def force_escalation(base: DecisionResult, reason: EscalationReason) -> DecisionResult:
         """Downgrade an existing decision to ESCALATE, adding one reason.
 
         Used when something operational fails after the decision was made - the reply

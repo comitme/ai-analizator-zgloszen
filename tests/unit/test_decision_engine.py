@@ -27,9 +27,7 @@ def engine() -> DecisionEngine:
 def make_classification(
     *, intent: Intent = Intent.RETURN_NO_REASON, confidence: float = 0.95
 ) -> Classification:
-    return Classification(
-        intent=intent, order_ref="10432", confidence=confidence, reasoning="test"
-    )
+    return Classification(intent=intent, order_ref="10432", confidence=confidence, reasoning="test")
 
 
 def make_policy(
@@ -197,9 +195,7 @@ class TestMultipleReasons:
         result = engine.decide(
             classification=make_classification(confidence=0.4),
             order=None,
-            policy=make_policy(
-                outcome=PolicyOutcome.AMBIGUOUS, high_value=False, keywords=["sąd"]
-            ),
+            policy=make_policy(outcome=PolicyOutcome.AMBIGUOUS, high_value=False, keywords=["sąd"]),
         )
         assert result.reasons == [
             EscalationReason.LOW_CONFIDENCE,
@@ -230,9 +226,7 @@ class TestForceEscalation:
         )
         assert base.decision is Decision.AUTO_REPLY
 
-        forced = DecisionEngine.force_escalation(
-            base, EscalationReason.GENERATION_FAILED
-        )
+        forced = DecisionEngine.force_escalation(base, EscalationReason.GENERATION_FAILED)
         assert forced.decision is Decision.ESCALATE
         assert forced.reasons == [EscalationReason.GENERATION_FAILED]
         assert forced.threshold_used == base.threshold_used
@@ -243,9 +237,7 @@ class TestForceEscalation:
             order=None,
             policy=make_policy(outcome=PolicyOutcome.AMBIGUOUS),
         )
-        forced = DecisionEngine.force_escalation(
-            base, EscalationReason.GENERATION_FAILED
-        )
+        forced = DecisionEngine.force_escalation(base, EscalationReason.GENERATION_FAILED)
         assert EscalationReason.LOW_CONFIDENCE in forced.reasons
         assert EscalationReason.GENERATION_FAILED in forced.reasons
 

@@ -30,8 +30,7 @@ class Responder(Protocol):
         classification: Classification,
         order: Order | None,
         policy: PolicyResult,
-    ) -> tuple[str, UsageRecord]:
-        ...
+    ) -> tuple[str, UsageRecord]: ...
 
 
 class AnthropicResponder:
@@ -78,9 +77,7 @@ class AnthropicResponder:
         # thinking blocks alongside the text, and `.text` only exists on text blocks.
         reply = "".join(b.text for b in response.content if b.type == "text").strip()
         if not reply:
-            raise EmptyReplyError(
-                f"Model returned no text (stop_reason={response.stop_reason!r})"
-            )
+            raise EmptyReplyError(f"Model returned no text (stop_reason={response.stop_reason!r})")
 
         usage = build_usage_record(
             self._model,

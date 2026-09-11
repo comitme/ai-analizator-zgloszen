@@ -18,8 +18,7 @@ from .prompts import CLASSIFICATION_SYSTEM, build_classification_messages
 class Classifier(Protocol):
     """Anything that can turn ticket text into a classification plus its cost."""
 
-    def classify(self, ticket_text: str) -> tuple[Classification, UsageRecord]:
-        ...
+    def classify(self, ticket_text: str) -> tuple[Classification, UsageRecord]: ...
 
 
 class AnthropicClassifier:

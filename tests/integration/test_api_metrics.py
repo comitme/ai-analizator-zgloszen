@@ -124,3 +124,13 @@ class TestCost:
         by_model = client.get("/metrics").json()["cost"]["by_model"]
 
         assert Decimal(by_model["claude-sonnet-5"]) == Decimal("0.0063")
+
+    def test_call_counts_per_model_are_reported(self, client):
+        """Cost alone cannot tell stub traffic from real: the stub costs exactly 0,
+        which is indistinguishable from 'no calls yet'. The panel needs counts to warn
+        that a projection is built on data no model ever produced."""
+        _auto(client)  # classification + generation
+
+        calls = client.get("/metrics").json()["cost"]["calls_by_model"]
+
+        assert calls == {"claude-sonnet-5": 2}

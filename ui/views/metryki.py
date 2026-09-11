@@ -19,6 +19,7 @@ from ui.common import (
     percent,
     render_sidebar_status,
     show_api_error,
+    stub_share,
 )
 
 OKRESY = {"Ostatnie 7 dni": 7, "Ostatnie 30 dni": 30, "Od początku": None}
@@ -47,6 +48,25 @@ try:
 except TriageApiError as error:
     show_api_error(error)
     st.stop()
+
+udzial_atrapy = stub_share(m["cost"].get("calls_by_model", {}))
+if udzial_atrapy is not None:
+    if udzial_atrapy == 1.0:
+        st.error(
+            "⚠️ **Wszystkie dane pochodzą z atrapy modelu (tryb offline).** "
+            "Koszty są zerowe, bo żadne zgłoszenie nie trafiło do prawdziwego modelu, "
+            "a wartości pewności są sztywno wpisane w kodzie atrapy. "
+            "Prognoza kosztu poniżej pokaże zera i **nie nadaje się do wyceny**.",
+            icon="🧪",
+        )
+    else:
+        st.warning(
+            f"⚠️ **{percent(udzial_atrapy)} wywołań pochodzi z atrapy modelu.** "
+            "Te zgłoszenia mają koszt zerowy, więc średni koszt na zgłoszenie i prognoza "
+            "poniżej są **zaniżone**. Aby uzyskać wiarygodne liczby, wyczyść bazę "
+            "(`data/triage.db`) i przetwórz zgłoszenia wyłącznie na prawdziwym modelu.",
+            icon="🧪",
+        )
 
 if m["total_tickets"] == 0:
     st.info(
@@ -142,6 +162,11 @@ st.caption(
     "Prosta ekstrapolacja obecnego kosztu na zgłoszenie. Zakłada podobny rozkład "
     "zgłoszeń - przy innym miksie intencji udział droższej generacji się zmieni."
 )
+if udzial_atrapy is not None:
+    st.caption(
+        "🧪 Uwaga: część lub całość danych pochodzi z atrapy modelu, "
+        "więc poniższe kwoty są zaniżone."
+    )
 per_ticket = float(m["cost"]["per_ticket_usd"])
 st.dataframe(
     pd.DataFrame(

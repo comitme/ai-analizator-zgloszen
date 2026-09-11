@@ -275,6 +275,10 @@ class SqlAlchemyTicketRepository:
                 stmt = stmt.where(LlmCallRow.created_at >= since)
             return {str(key): Decimal(str(value)) for key, value in self._session.execute(stmt)}
 
+        counted = select(LlmCallRow.model, func.count()).group_by(LlmCallRow.model)
+        if since is not None:
+            counted = counted.where(LlmCallRow.created_at >= since)
+
         total_usd = Decimal(str(usd))
         return CostBreakdown(
             total_usd=total_usd,
@@ -284,6 +288,7 @@ class SqlAlchemyTicketRepository:
             output_tokens=int(tokens_out),
             by_model=sliced(LlmCallRow.model),
             by_stage=sliced(LlmCallRow.stage),
+            calls_by_model={str(k): int(v) for k, v in self._session.execute(counted)},
         )
 
 

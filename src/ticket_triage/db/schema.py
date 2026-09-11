@@ -77,9 +77,7 @@ class TicketRow(Base):
         String(32), default=None, doc="approved | edited | rejected"
     )
     final_reply: Mapped[str | None] = mapped_column(Text, default=None)
-    answered_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     order: Mapped[OrderRow | None] = relationship(lazy="joined")
     llm_calls: Mapped[list["LlmCallRow"]] = relationship(

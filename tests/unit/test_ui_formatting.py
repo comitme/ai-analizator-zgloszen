@@ -5,7 +5,7 @@ Decimals as JSON strings - formatting one with ``f"{value:.4f}"`` raises. These 
 that contract so the panel cannot crash on a money field again.
 """
 
-from ui.common import confidence_badge, money, percent
+from ui.common import confidence_badge, money, percent, stub_share
 
 
 class TestMoney:
@@ -42,3 +42,24 @@ class TestConfidenceBadge:
 
     def test_missing_confidence_is_a_dash(self):
         assert confidence_badge(None) == "—"
+
+
+class TestStubDetection:
+    """The panel must say when a cost projection rests on stub rows.
+
+    The offline stub records real tickets with a cost of exactly zero, so a mixed
+    database silently produces an optimistic projection - which is how a shop owner
+    ends up believing the system is free.
+    """
+
+    def test_no_stub_calls_means_nothing_to_warn_about(self):
+        assert stub_share({"claude-sonnet-5": 40}) is None
+
+    def test_all_stub_calls_is_reported_as_everything(self):
+        assert stub_share({"fake": 24}) == 1.0
+
+    def test_mixed_data_reports_the_stub_share(self):
+        assert stub_share({"fake": 6, "claude-sonnet-5": 14}) == 0.3
+
+    def test_empty_metrics_are_not_a_warning(self):
+        assert stub_share({}) is None

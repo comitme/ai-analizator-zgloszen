@@ -46,9 +46,7 @@ class TriageService:
             ticket_text=ticket_text,
             today=today,
         )
-        decision = self._decision.decide(
-            classification=classification, order=order, policy=policy
-        )
+        decision = self._decision.decide(classification=classification, order=order, policy=policy)
 
         # Escalated tickets are not drafted at all. Nobody would send that reply, so
         # generating it would burn roughly three times the classification cost for

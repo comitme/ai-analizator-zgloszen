@@ -93,6 +93,15 @@ class CostBreakdown(BaseModel):
     output_tokens: int = 0
     by_model: dict[str, Decimal] = Field(default_factory=dict)
     by_stage: dict[str, Decimal] = Field(default_factory=dict)
+    calls_by_model: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "How many calls each model answered. Needed because cost alone cannot "
+            "separate stub traffic from real: the offline stub costs exactly 0, which "
+            "looks identical to 'no calls yet'. A projection built on stub rows would "
+            "quietly read as free."
+        ),
+    )
 
 
 class QueueMetrics(BaseModel):

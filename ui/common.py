@@ -103,6 +103,25 @@ def confidence_badge(value: float | None) -> str:
     return f"{mark} {value:.0%}"
 
 
+STUB_MODEL = "fake"
+"""Model name the offline stub records. Matches FakeClassifier's UsageRecord."""
+
+
+def stub_share(calls_by_model: dict[str, int]) -> float | None:
+    """What fraction of model calls came from the offline stub, or ``None`` if none did.
+
+    Cost cannot answer this: the stub records a cost of exactly zero, which is
+    indistinguishable from "no calls yet". A database holding both stub and real
+    tickets therefore produces a cost projection that is quietly too low - the one
+    number a shop owner would most want to trust.
+    """
+    total = sum(calls_by_model.values())
+    stub = calls_by_model.get(STUB_MODEL, 0)
+    if not total or not stub:
+        return None
+    return stub / total
+
+
 def show_api_error(error: TriageApiError) -> None:
     """One consistent way to report a failed call, with a hint when it is a connection problem."""
     st.error(str(error))
