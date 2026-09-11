@@ -1,0 +1,56 @@
+# Local demo: the API and the operator panel as two containers.
+#
+#   docker compose up --build     # panel: http://localhost:8501   API docs: http://localhost:8000/docs
+#   docker compose down           # stop (the database survives in the `triage-data` volume)
+#   docker compose down -v        # stop and delete the database
+#
+# Without a .env file this runs in offline mode: a stub instead of the model, no API key,
+# no cost. With ANTHROPIC_API_KEY and TRIAGE_FAKE_LLM=0 in .env it uses the real model.
+#
+# Requires Docker Compose v2.24+ (for the optional env_file below).
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    image: ticket-triage-api
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Compose also reads .env for ${...} substitution: no .env means the stub.
+      TRIAGE_FAKE_LLM: ${TRIAGE_FAKE_LLM:-1}
+      # Absolute path into the volume, overriding the relative one a local .env carries.
+      DATABASE_URL: sqlite:////app/data/triage.db
+    # Demo only: fill the mock orders table first (safe to repeat), then serve. The
+    # image's own CMD serves without seeding - a real deployment has real orders.
+    command:
+      - sh
+      - -c
+      - python scripts/seed_db.py && exec uvicorn ticket_triage.api.main:app --app-dir src --host 0.0.0.0 --port 8000
+    ports:
+      # Bound to localhost on purpose: the API has no authentication yet, and 8000:8000
+      # would expose every customer message to the whole local network.
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - triage-data:/app/data
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      target: ui
+    image: ticket-triage-ui
+    environment:
+      # Inside the compose network the API is reachable by its service name.
+      TRIAGE_API_URL: http://api:8000
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  triage-data:

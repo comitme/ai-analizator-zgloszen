@@ -16,9 +16,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The panel's own dependencies - its Docker image installs exactly this list, so
+# it must be complete on its own (httpx is here even though the base list also has it).
 ui = [
     "streamlit>=1.40",
     "pandas>=2.2",
+    "httpx>=0.27",
 ]
 dev = [
     "pytest>=8.3",

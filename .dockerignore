@@ -1,0 +1,42 @@
+# Everything listed here stays out of the build context, and so out of every image layer.
+
+# Secrets and private notes. A key copied into a layer stays in the image history even
+# if a later layer deletes it.
+.env
+.env.*
+!.env.example
+NOTES.md
+
+# Local state
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Version control, editors, caches
+.git/
+.gitignore
+.vscode/
+.idea/
+.claude/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Not needed at runtime
+tests/
+eval/
+*.md
+Makefile
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Local packaging artefacts (from `pip install -e .`)
+*.egg-info/
