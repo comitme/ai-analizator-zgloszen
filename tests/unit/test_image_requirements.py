@@ -50,10 +50,16 @@ class TestUiImage:
         assert {"streamlit", "pandas", "httpx"} <= names
 
     def test_carries_none_of_the_api_stack(self, reqs):
-        """If this fails, the 'two separate services' claim in the README is false."""
+        """If this fails, the 'two separate services' claim in the README is false.
+
+        uvicorn is deliberately not in this set: Streamlit itself runs on starlette and
+        uvicorn, so a built ui image contains it (checked in the running container).
+        What must stay out is this API's own stack - the web framework, the database
+        layer and the model SDK.
+        """
         names = _names(reqs.requirements(ROOT / "pyproject.toml", "ui"))
 
-        assert names.isdisjoint({"fastapi", "anthropic", "sqlalchemy", "uvicorn"})
+        assert names.isdisjoint({"fastapi", "anthropic", "sqlalchemy"})
 
 
 def test_unknown_image_is_rejected(reqs):
