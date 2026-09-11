@@ -9,7 +9,7 @@ help:
 	@echo "run-offline - API bez klucza i bez kosztów (atrapa modelu)"
 	@echo "ui        - panel operatora na http://localhost:8501 (API musi już działać)"
 	@echo "test      - testy bez wywołań API (nic nie kosztuje)"
-	@echo "test-all  - wszystkie testy, w tym te wołające prawdziwy model (KOSZTUJE)"
+	@echo "test-all  - wszystkie testy razem z oznaczonymi `llm` (dziś żaden nie woła modelu)"
 	@echo "eval-check - sprawdzenie pipeline'u ewaluacji bez API (oracle + offline, 0 zł)"
 	@echo "eval-pilot - 5 zgłoszeń na prawdziwym modelu: zmierz koszt przed pełnym przebiegiem"
 	@echo "eval      - pełna ewaluacja Sonnet 5 vs Haiku 4.5 (KOSZTUJE, ~kilkadziesiąt groszy)"
