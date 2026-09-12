@@ -126,7 +126,7 @@ Model rozpoznaje reklamację jakości z pewnością 97% i wyciąga numer zamówi
 
 > Dzień dobry,
 >
-> dziękujemy za zgłoszenie i przepraszamy za sytuację z uszkodzonym produktem z zamówienia nr 10439. Reklamacja została uznana - zakup mieści się w okresie rękojmi (do 28.08.2028), więc przysługuje Państwu prawo do jej rozpatrzenia na tej podstawie.
+> Dziękujemy za zgłoszenie i przepraszamy za sytuację z uszkodzonym produktem z zamówienia nr 10439. Reklamacja została uznana - zakup mieści się w okresie rękojmi (do 28.08.2028), więc przysługuje Państwu prawo do jej rozpatrzenia na tej podstawie.
 >
 > Skontaktujemy się z Państwem w sprawie dalszych kroków dotyczących wymiany lub zwrotu produktu.
 >
