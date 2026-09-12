@@ -62,6 +62,7 @@ RUN python scripts/print_requirements.py ui > /tmp/requirements.txt \
  && rm /tmp/requirements.txt
 
 COPY ui/ ui/
+COPY .streamlit/ .streamlit/
 
 RUN chown -R app:app /app
 USER app

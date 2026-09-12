@@ -1,0 +1,11 @@
+# Streamlit settings for the operator panel. Read from the working directory, so they
+# apply to `python scripts/dev.py ui`, `make ui`, a plain `streamlit run ui/app.py` from
+# the project root, and the Docker image (which copies this directory).
+
+[client]
+# Hide the "Deploy" button and the developer menu: this is an operator's tool, not a
+# development sandbox.
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
