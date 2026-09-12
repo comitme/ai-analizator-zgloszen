@@ -78,7 +78,7 @@ Pięć rozpoznawanych intencji: zwrot bez podania przyczyny, reklamacja jakości
 ```mermaid
 flowchart TD
     K["Wiadomość od klienta"] -->|"POST /tickets"| S["Zapis zgłoszenia<br/>"]
-    S --> C["Klasyfikacja — Claude<br/>structured output: <br/>intencja<br/>numer zamówienia<br/>pewność"]
+    S --> C["Klasyfikacja — Claude<br/>Structured Output: <br/>**intencja**<br/>**numer zamówienia**<br/>**pewność**"]
     C --> O[("Zamówienia<br/>SQLite")]
     O --> P["Silnik regulaminu<br/>return_policy.yaml<br/>bez udziału modelu"]
     P --> D{"Silnik decyzji<br/>6 warunków eskalacji"}
