@@ -1,6 +1,6 @@
 # AI Analizator Zgłoszeń
 
-Kiedy klient sklepu internetowego pisze *„chcę zwrócić buty, są za małe"*, ktoś musi to przeczytać, znaleźć zamówienie, sprawdzić regulamin i odpowiedzieć. Ten system robi to jako pierwsza linia obsługi: model Claude rozpoznaje, o co chodzi, kod sprawdza to z regulaminem sklepu, a całość albo przygotowuje gotową odpowiedź, albo — gdy coś budzi wątpliwości — od razu oddaje sprawę człowiekowi.
+Kiedy klient sklepu internetowego pisze *„chcę zwrócić buty, są za małe"*, ktoś musi to przeczytać, znaleźć zamówienie, sprawdzić regulamin i odpowiedzieć. Ten system robi to jako pierwsza linia obsługi: model Claude rozpoznaje, o co chodzi, kod sprawdza to z regulaminem sklepu, a całość albo przygotowuje gotową odpowiedź, albo — **gdy coś budzi wątpliwości** — od razu oddaje sprawę człowiekowi.
 
 🇵🇱 Polski (poniżej) · 🇬🇧 [Read in English ↓](#english)
 
@@ -120,7 +120,9 @@ Panel ma cztery zakładki: **Nowe zgłoszenie** (wklej wiadomość i zobacz decy
 
 Diagram jest abstrakcyjny, więc dwa prawdziwe przykłady — z testowego przebiegu na działającym API z Claude Sonnet 5 (zgłoszenia napisane na potrzeby próby, nie od klientów).
 
-**Zgłoszenie #15**: *„Witam, produkt z zamówienia 10439 przyszedł uszkodzony, opakowanie było rozerwane."*
+**Zgłoszenie #2**: *„Witam, produkt z zamówienia 10439 przyszedł uszkodzony, opakowanie było rozerwane."*
+
+![alt text](image-2.png)
 
 Model rozpoznaje reklamację jakości z pewnością 97% i wyciąga numer zamówienia. `PolicyEngine` sprawdza datę zakupu względem 24-miesięcznej rękojmi i orzeka: zgodne z regulaminem, reguła `allowed.within_warranty`. Żaden z sześciu warunków eskalacji się nie uruchamia, więc system od razu pisze odpowiedź:
 
@@ -133,7 +135,7 @@ Model rozpoznaje reklamację jakości z pewnością 97% i wyciąga numer zamówi
 > Pozdrawiamy,
 > Obsługa Klienta
 
-Koszt całego zgłoszenia — klasyfikacja i napisanie odpowiedzi — to $0.00865.
+Koszt całego zgłoszenia — klasyfikacja i napisanie odpowiedzi — to $0.0099.
 
 **Zgłoszenie #14** wygląda z pozoru podobnie, bo też dotyczy zamówienia formalnie w terminie zwrotu. Klient pisze jednak inaczej: *„Zamówienie 10432 - żądam natychmiastowego zwrotu pieniędzy, inaczej kieruję sprawę do UOKiK."*
 
