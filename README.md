@@ -1,4 +1,4 @@
-# AI Analizator Zgłoszeń
+# [AI] Analizator Zgłoszeń 
 
 Kiedy klient sklepu internetowego pisze *„chcę zwrócić buty, są za małe"*, ktoś musi to przeczytać, znaleźć zamówienie, sprawdzić regulamin i odpowiedzieć. Ten system robi to jako pierwsza linia obsługi: model Claude rozpoznaje, o co chodzi, kod sprawdza to z regulaminem sklepu, a całość albo przygotowuje gotową odpowiedź, albo — **gdy coś budzi wątpliwości** — od razu oddaje sprawę człowiekowi.
 
